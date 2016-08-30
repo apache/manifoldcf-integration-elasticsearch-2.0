@@ -18,14 +18,13 @@
 */
 package org.apache.manifoldcf.elasticsearch;
 
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
-public class MCFAuthorizerPlugin extends AbstractPlugin
+public class MCFAuthorizerPlugin extends Plugin
 {
 
   private final ESLogger log = Loggers.getLogger(this.getClass());
@@ -45,9 +44,7 @@ public class MCFAuthorizerPlugin extends AbstractPlugin
   }
 
   @Override
-  public void processModule(Module module) {
-    if (module instanceof RestModule) {
-      ((RestModule) module).addRestAction(MCFAuthorizerRestSearchAction.class);
-    }
+  public void onModule(RestModule module) {
+    module.addRestAction(MCFAuthorizerRestSearchAction.class);
   }
 }

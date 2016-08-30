@@ -22,9 +22,9 @@ import java.io.*;
 import java.util.*;
 import java.net.*;
 
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.BoolFilterBuilder;
-import org.elasticsearch.index.query.TermFilterBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
 
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.logging.ESLogger;
@@ -119,7 +119,7 @@ public class MCFAuthorizer
    *@param authenticatedUserNamesAndDomains is a list of user names and its domains in the form "user:mcfdomain".
    *@return the filter builder.
    */
-  public FilterBuilder buildAuthorizationFilter(String[] authenticatedUserNamesAndDomains)
+  public QueryBuilder buildAuthorizationFilter(String[] authenticatedUserNamesAndDomains)
     throws  MCFAuthorizerException{
     Map<String,String> domainMap = new HashMap<String,String>();
     for(String buffer : authenticatedUserNamesAndDomains){
@@ -136,9 +136,9 @@ public class MCFAuthorizer
   /** Main method for building a filter representing appropriate security.
   *@param domainMap is a map from MCF authorization domain name to user name,
   * and describes a complete user identity.
-  *@return the filter builder.
+  *@return the query builder.
   */
-  public FilterBuilder buildAuthorizationFilter(Map<String,String> domainMap)
+  public QueryBuilder buildAuthorizationFilter(Map<String,String> domainMap)
     throws MCFAuthorizerException
   {
     if (authorityBaseURL == null)
@@ -167,9 +167,9 @@ public class MCFAuthorizer
   
   /** Main method for building a filter representing appropriate security.
   *@param authenticatedUserName is a user name in the form "user:mcfdomain".
-  *@return the filter builder.
+  *@return the query builder.
   */
-  public FilterBuilder buildAuthorizationFilter(String authenticatedUserName)
+  public QueryBuilder buildAuthorizationFilter(String authenticatedUserName)
     throws MCFAuthorizerException
   {
     return buildAuthorizationFilter(authenticatedUserName, "");
@@ -178,9 +178,9 @@ public class MCFAuthorizer
   /** Main method for building a filter representing appropriate security.
   *@param authenticatedUserName is a user name in the form "user".
   *@param authenticatedUserDomain is the corresponding MCF authorization domain.
-  *@return the filter builder.
+  *@return the query builder.
   */
-  public FilterBuilder buildAuthorizationFilter(String authenticatedUserName, String authenticatedUserDomain)
+  public QueryBuilder buildAuthorizationFilter(String authenticatedUserName, String authenticatedUserDomain)
     throws MCFAuthorizerException
   {
     Map<String,String> domainMap = new HashMap<String,String>();
@@ -192,17 +192,17 @@ public class MCFAuthorizer
   *@param userAccessTokens are a set of tokens to use to construct the filter (presumably from mod_authz_annotate, upstream)
   *@return the wrapped query enforcing ManifoldCF security.
   */
-  public FilterBuilder buildAuthorizationFilter(List<String> userAccessTokens)
+  public QueryBuilder buildAuthorizationFilter(List<String> userAccessTokens)
     throws MCFAuthorizerException
   {
-    BoolFilterBuilder bq = new BoolFilterBuilder();
+    BoolQueryBuilder bq = new BoolQueryBuilder();
     
-    FilterBuilder allowShareOpen = new TermFilterBuilder(fieldAllowShare,NOSECURITY_TOKEN);
-    FilterBuilder denyShareOpen = new TermFilterBuilder(fieldDenyShare,NOSECURITY_TOKEN);
-    FilterBuilder allowParentOpen = new TermFilterBuilder(fieldAllowParent,NOSECURITY_TOKEN);
-    FilterBuilder denyParentOpen = new TermFilterBuilder(fieldDenyParent,NOSECURITY_TOKEN);
-    FilterBuilder allowDocumentOpen = new TermFilterBuilder(fieldAllowDocument,NOSECURITY_TOKEN);
-    FilterBuilder denyDocumentOpen = new TermFilterBuilder(fieldDenyDocument,NOSECURITY_TOKEN);
+    QueryBuilder allowShareOpen = new TermQueryBuilder(fieldAllowShare,NOSECURITY_TOKEN);
+    QueryBuilder denyShareOpen = new TermQueryBuilder(fieldDenyShare,NOSECURITY_TOKEN);
+    QueryBuilder allowParentOpen = new TermQueryBuilder(fieldAllowParent,NOSECURITY_TOKEN);
+    QueryBuilder denyParentOpen = new TermQueryBuilder(fieldDenyParent,NOSECURITY_TOKEN);
+    QueryBuilder allowDocumentOpen = new TermQueryBuilder(fieldAllowDocument,NOSECURITY_TOKEN);
+    QueryBuilder denyDocumentOpen = new TermQueryBuilder(fieldDenyDocument,NOSECURITY_TOKEN);
     
     if (userAccessTokens == null || userAccessTokens.size() == 0)
     {
@@ -233,21 +233,21 @@ public class MCFAuthorizer
   * ((fieldAllowShare is empty AND fieldDenyShare is empty) OR fieldAllowShare HAS token1 OR fieldAllowShare HAS token2 ...)
   *     AND fieldDenyShare DOESN'T_HAVE token1 AND fieldDenyShare DOESN'T_HAVE token2 ...
   */
-  protected static FilterBuilder calculateCompleteSubquery(String allowField, String denyField, FilterBuilder allowOpen, FilterBuilder denyOpen, List<String> userAccessTokens)
+  protected static QueryBuilder calculateCompleteSubquery(String allowField, String denyField, QueryBuilder allowOpen, QueryBuilder denyOpen, List<String> userAccessTokens)
   {
-    BoolFilterBuilder bq = new BoolFilterBuilder();
+    BoolQueryBuilder bq = new BoolQueryBuilder();
     // No ES equivalent - hope this is done right inside
     //bq.setMaxClauseCount(1000000);
     
     // Add the empty-acl case
-    BoolFilterBuilder subUnprotectedClause = new BoolFilterBuilder();
+    BoolQueryBuilder subUnprotectedClause = new BoolQueryBuilder();
     subUnprotectedClause.must(allowOpen);
     subUnprotectedClause.must(denyOpen);
     bq.should(subUnprotectedClause);
     for (String accessToken : userAccessTokens)
     {
-      bq.should(new TermFilterBuilder(allowField,accessToken));
-      bq.mustNot(new TermFilterBuilder(denyField,accessToken));
+      bq.should(new TermQueryBuilder(allowField,accessToken));
+      bq.mustNot(new TermQueryBuilder(denyField,accessToken));
     }
     return bq;
   }

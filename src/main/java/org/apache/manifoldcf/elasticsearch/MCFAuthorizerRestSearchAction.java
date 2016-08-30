@@ -29,7 +29,6 @@ import org.elasticsearch.rest.action.support.RestStatusToXContentListener;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -72,7 +71,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
       boolean isTemplateRequest = request.path().endsWith("/template");
 
       if(request.hasContent() || request.hasParam("source")) {
-        FilterBuilder authorizationFilter = authorizer.buildAuthorizationFilter(authenticatedUserNamesAndDomains);
+        QueryBuilder authorizationFilter = authorizer.buildAuthorizationFilter(authenticatedUserNamesAndDomains);
         FilteredQueryBuilder filteredQueryBuilder;
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -123,7 +122,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
     String queryString = request.param("q");
     if(queryString != null) {
       String[] authenticatedUserNamesAndDomains = request.param("u").split(",");
-      FilterBuilder authorizationFilter = authorizer.buildAuthorizationFilter(authenticatedUserNamesAndDomains);
+      QueryBuilder authorizationFilter = authorizer.buildAuthorizationFilter(authenticatedUserNamesAndDomains);
       QueryStringQueryBuilder from = QueryBuilders.queryStringQuery(queryString);
       from.defaultField(request.param("df"));
       from.analyzer(request.param("analyzer"));
@@ -154,7 +153,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
           if(searchSourceBuilder == null) {
             searchSourceBuilder = new SearchSourceBuilder();
           }
-          FilterBuilder authorizationFilter = authorizer.buildAuthorizationFilter(request.param("u"));
+          QueryBuilder authorizationFilter = authorizer.buildAuthorizationFilter(request.param("u"));
           searchSourceBuilder.query(QueryBuilders.filteredQuery(QueryBuilders.matchAllQuery(),authorizationFilter));
         }
     }
