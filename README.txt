@@ -17,7 +17,7 @@ Compatibility
 ------------
 
 This version of this component is fully functional with Apache ManifoldCF 1.6 and
-above and with Elasticsearch 1.5.x.
+above and with Elasticsearch 2.x.
 
 Instructions for Building Apache ManifoldCF Plugin for Elastic Search from Source
 -----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ mvn clean install
 
 The JAR packages can be found in the target folder:
 
-target/elasticsearch-1.5-plugin-mcf-<VERSION>-jar-with-dependencies.jar
+target/elasticsearch-2.0-plugin-mcf-<VERSION>-jar-with-dependencies.jar
 
 ... where <VERSION> is the release version
 
@@ -141,7 +141,7 @@ public class SearchService {
 Licensing
 ---------
 
-Apache ManifoldCF Plugin for Elastic Search 1.5 is licensed under the
+Apache ManifoldCF Plugin for Elastic Search 2.0 is licensed under the
 Apache License 2.0. See the files called LICENSE.txt and NOTICE.txt
 for more information.
 
