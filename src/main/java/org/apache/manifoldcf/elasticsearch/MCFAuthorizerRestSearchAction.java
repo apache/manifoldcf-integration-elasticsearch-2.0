@@ -30,6 +30,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.common.ParseFieldMatcher;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.rest.RestRequest;
@@ -57,17 +59,20 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
 
   @Override
   public void handleRequest(RestRequest request, RestChannel channel, Client client) {
-    SearchRequest searchRequest = parseSearchRequestMCF(request);
-    //TODO: see if this is still needed??? searchRequest.listenerThreaded(false);
+    SearchRequest searchRequest;
+    searchRequest = parseSearchRequestMCF(request, parseFieldMatcher);
     client.search(searchRequest, new RestStatusToXContentListener(channel));
   }
   
-  protected SearchRequest parseSearchRequestMCF(final RestRequest request) throws MCFAuthorizerException {
-    SearchRequest searchRequest;
+  protected SearchRequest parseSearchRequestMCF(
+    final RestRequest request,
+    final ParseFieldMatcher parseFieldMatcher) throws IOException {
+    final SearchRequest searchRequest;
     if(request.param("u")!=null) {
+      searchRequest = new SearchRequest();
       String[] authenticatedUserNamesAndDomains = request.param("u").split(",");
       String[] indices = Strings.splitStringByCommaToArray(request.param("index"));
-      searchRequest = new SearchRequest(indices);
+      searchRequest.indices(indices);
       boolean isTemplateRequest = request.path().endsWith("/template");
 
       if(request.hasContent() || request.hasParam("source")) {
@@ -78,23 +83,19 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
         ObjectNode modifiedJSON, innerJSON;
         JsonNode requestJSON;
 
-        try {
-          requestJSON = objectMapper.readTree(RestActions.getRestContent(request).toBytes());
-          if (isTemplateRequest) {
-            modifiedJSON = (ObjectNode) requestJSON;
-            innerJSON = (ObjectNode)requestJSON.findValue("template");
-            filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(innerJSON.findValue("query").toString()), authorizationFilter);
-            modifiedJSON.replace("template",innerJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes())));
-            searchRequest.templateSource(modifiedJSON.toString());
-          } else {
-            filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(requestJSON.findValue("query").toString()), authorizationFilter);
-            modifiedJSON = (ObjectNode) requestJSON;
-            modifiedJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes()));
-            searchRequest.source(modifiedJSON.toString());
-          }
-        } catch (IOException e) {
-            throw new MCFAuthorizerException("JSON parser error: "+e.getMessage(),e);
-          }
+        requestJSON = objectMapper.readTree(RestActions.getRestContent(request).toBytes());
+        if (isTemplateRequest) {
+          modifiedJSON = (ObjectNode) requestJSON;
+          innerJSON = (ObjectNode)requestJSON.findValue("template");
+          filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(innerJSON.findValue("query").toString()), authorizationFilter);
+          modifiedJSON.replace("template",innerJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes())));
+          searchRequest.templateSource(modifiedJSON.toString());
+        } else {
+          filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(requestJSON.findValue("query").toString()), authorizationFilter);
+          modifiedJSON = (ObjectNode) requestJSON;
+          modifiedJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes()));
+          searchRequest.source(modifiedJSON.toString());
+        }
       }
 
       //parseSearchSource(searchRequest.source(), request);
@@ -115,9 +116,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
       searchRequest.indicesOptions(IndicesOptions.fromRequest(request, searchRequest.indicesOptions()));
     }
     else {
-      //TODO: we definitely still need this, but its form has dramatically changed, and it now parses into the current body and returns
-      // void.  Gotta look at how to rethink plugin architecture given that ???
-      searchRequest = RestSearchAction.parseSearchRequest(request);
+      searchRequest = parseSearchRequest(request, parseFieldMatcher);
     }
     return searchRequest;
   }
