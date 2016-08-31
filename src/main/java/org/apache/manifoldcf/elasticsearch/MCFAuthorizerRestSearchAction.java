@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.action.support.RestActions;
@@ -41,6 +40,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.search.suggest.SuggestBuilders;
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.io.*;
 
@@ -93,17 +93,20 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
             searchRequest.source(modifiedJSON.toString());
           }
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new MCFAuthorizerException("JSON parser error");
+            throw new MCFAuthorizerException("JSON parser error: "+e.getMessage(),e);
           }
       }
 
+      //parseSearchSource(searchRequest.source(), request);
       searchRequest.extraSource(parseSearchSourceMCF(request));
       searchRequest.searchType(request.param("search_type"));
-      //TODO: figure out if we still need this??? searchRequest.queryCache(request.paramAsBoolean("query_cache", (Boolean)null));
+      
+      // Should this be done?
+      searchRequest.requestCache(request.paramAsBoolean("request_cache", null));
+
       String scroll = request.param("scroll");
-      if(scroll != null) {
-        //TODO: figure out if we still need this??? searchRequest.scroll(new Scroll(TimeValue.parseTimeValue(scroll, (TimeValue)null)));
+      if (scroll != null) {
+        searchRequest.scroll(new Scroll(TimeValue.parseTimeValue(scroll, null, "scroll")));
       }
 
       searchRequest.types(Strings.splitStringByCommaToArray(request.param("type")));
