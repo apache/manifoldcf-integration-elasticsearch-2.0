@@ -58,7 +58,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
   @Override
   public void handleRequest(RestRequest request, RestChannel channel, Client client) {
     SearchRequest searchRequest = parseSearchRequestMCF(request);
-    searchRequest.listenerThreaded(false);
+    //TODO: see if this is still needed??? searchRequest.listenerThreaded(false);
     client.search(searchRequest, new RestStatusToXContentListener(channel));
   }
   
@@ -100,10 +100,10 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
 
       searchRequest.extraSource(parseSearchSourceMCF(request));
       searchRequest.searchType(request.param("search_type"));
-      searchRequest.queryCache(request.paramAsBoolean("query_cache", (Boolean)null));
+      //TODO: figure out if we still need this??? searchRequest.queryCache(request.paramAsBoolean("query_cache", (Boolean)null));
       String scroll = request.param("scroll");
       if(scroll != null) {
-        searchRequest.scroll(new Scroll(TimeValue.parseTimeValue(scroll, (TimeValue)null)));
+        //TODO: figure out if we still need this??? searchRequest.scroll(new Scroll(TimeValue.parseTimeValue(scroll, (TimeValue)null)));
       }
 
       searchRequest.types(Strings.splitStringByCommaToArray(request.param("type")));
@@ -112,6 +112,8 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
       searchRequest.indicesOptions(IndicesOptions.fromRequest(request, searchRequest.indicesOptions()));
     }
     else {
+      //TODO: we definitely still need this, but its form has dramatically changed, and it now parses into the current body and returns
+      // void.  Gotta look at how to rethink plugin architecture given that ???
       searchRequest = RestSearchAction.parseSearchRequest(request);
     }
     return searchRequest;
@@ -135,7 +137,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
           from.defaultOperator(QueryStringQueryBuilder.Operator.OR);
         } else {
           if(!"AND".equals(size)) {
-            throw new ElasticsearchIllegalArgumentException("Unsupported defaultOperator [" + size + "], can either be [OR] or [AND]");
+            throw new IllegalArgumentException("Unsupported defaultOperator [" + size + "], can either be [OR] or [AND]");
           }
 
           from.defaultOperator(QueryStringQueryBuilder.Operator.AND);
@@ -207,7 +209,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
 
       int sField = request.paramAsInt("terminate_after", 0);
       if(sField < 0) {
-        throw new ElasticsearchIllegalArgumentException("terminateAfter must be > 0");
+        throw new IllegalArgumentException("terminateAfter must be > 0");
       }
 
       if(sField > 0) {
@@ -301,7 +303,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
         var32 = var29[var31];
         int var33 = var32.indexOf(44);
         if(var33 == -1) {
-          throw new ElasticsearchIllegalArgumentException("Illegal index boost [" + var32 + "], no \',\'");
+          throw new IllegalArgumentException("Illegal index boost [" + var32 + "], no \',\'");
         }
 
         indexName = var32.substring(0, var33);
@@ -310,7 +312,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
         try {
           searchSourceBuilder.indexBoost(indexName, Float.parseFloat(sBoost));
         } catch (NumberFormatException var18) {
-          throw new ElasticsearchIllegalArgumentException("Illegal index boost [" + var32 + "], boost not a float number");
+          throw new IllegalArgumentException("Illegal index boost [" + var32 + "], boost not a float number");
         }
       }
     }
