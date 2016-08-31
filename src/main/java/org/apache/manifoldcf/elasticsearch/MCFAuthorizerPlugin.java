@@ -43,7 +43,7 @@ public class MCFAuthorizerPlugin extends Plugin
     return "Plugin to connect elasticsearch with ManifoldCF";
   }
 
-  @Override
+  //@Override
   public void onModule(RestModule module) {
     module.addRestAction(MCFAuthorizerRestSearchAction.class);
   }

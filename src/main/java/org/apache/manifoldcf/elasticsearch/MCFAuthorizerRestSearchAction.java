@@ -66,7 +66,7 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
   
   protected SearchRequest parseSearchRequestMCF(
     final RestRequest request,
-    final ParseFieldMatcher parseFieldMatcher) throws IOException {
+    final ParseFieldMatcher parseFieldMatcher) throws MCFAuthorizerException {
     final SearchRequest searchRequest;
     if(request.param("u")!=null) {
       searchRequest = new SearchRequest();
@@ -83,18 +83,22 @@ public class MCFAuthorizerRestSearchAction extends RestSearchAction {
         ObjectNode modifiedJSON, innerJSON;
         JsonNode requestJSON;
 
-        requestJSON = objectMapper.readTree(RestActions.getRestContent(request).toBytes());
-        if (isTemplateRequest) {
-          modifiedJSON = (ObjectNode) requestJSON;
-          innerJSON = (ObjectNode)requestJSON.findValue("template");
-          filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(innerJSON.findValue("query").toString()), authorizationFilter);
-          modifiedJSON.replace("template",innerJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes())));
-          searchRequest.templateSource(modifiedJSON.toString());
-        } else {
-          filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(requestJSON.findValue("query").toString()), authorizationFilter);
-          modifiedJSON = (ObjectNode) requestJSON;
-          modifiedJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes()));
-          searchRequest.source(modifiedJSON.toString());
+        try {
+          requestJSON = objectMapper.readTree(RestActions.getRestContent(request).toBytes());
+          if (isTemplateRequest) {
+            modifiedJSON = (ObjectNode) requestJSON;
+            innerJSON = (ObjectNode)requestJSON.findValue("template");
+            filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(innerJSON.findValue("query").toString()), authorizationFilter);
+            modifiedJSON.replace("template",innerJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes())));
+            searchRequest.templateSource(modifiedJSON.toString());
+          } else {
+            filteredQueryBuilder = QueryBuilders.filteredQuery(QueryBuilders.wrapperQuery(requestJSON.findValue("query").toString()), authorizationFilter);
+            modifiedJSON = (ObjectNode) requestJSON;
+            modifiedJSON.set("query", objectMapper.readTree(filteredQueryBuilder.buildAsBytes().toBytes()));
+            searchRequest.source(modifiedJSON.toString());
+          }
+        } catch (IOException e) {
+          throw new MCFAuthorizerException("JSON parser error: "+e.getMessage(), e);
         }
       }
 
